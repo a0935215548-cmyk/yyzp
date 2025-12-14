@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情绪状态评估（内部版本）</title>
+    <style>
+        /* 1. 基础样式 */
+        body { font-family: 'Microsoft YaHei', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; margin: 20px; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: #4a7d74; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 30px; }
+
+        /* 2. 题目区样式 */
+        .question-group { margin-bottom: 25px; padding: 15px; border: 1px solid #e9ecef; border-radius: 8px; background-color: #ffffff; }
+        .question-text { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; color: #343a40; }
+        .options { display: flex; justify-content: space-between; flex-wrap: wrap; }
+        /* 选项宽度和样式 */
+        .options label { flex: 1; min-width: 15%; text-align: center; padding: 8px 5px; border: 1px solid #ccc; border-radius: 4px; margin: 3px; cursor: pointer; transition: all 0.3s; }
+        .options input[type="radio"] { display: none; }
+        /* 选中的效果 */
+        .options input[type="radio"]:checked + label { background-color: #4a7d74; color: white; border-color: #4a7d74; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }
+        .options label:hover { background-color: #e0f0ed; }
+
+        /* 3. 测谎题样式（仅作标记） */
+        .lie-item { border-left: 5px solid #ffc107; }
+
+        /* 4. 按钮和结果区 */
+        #submit-btn { display: block; width: 100%; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 1.2em; cursor: pointer; margin-top: 30px; transition: background-color 0.3s; }
+        #submit-btn:hover { background-color: #218838; }
+        #result { margin-top: 30px; padding: 20px; border: 2px dashed #007bff; border-radius: 8px; background-color: #eaf6ff; font-size: 1.1em; display: none; }
+        .result-score { font-size: 1.5em; font-weight: bold; color: #dc3545; margin-top: 10px; }
+        .interpretation { margin-top: 20px; padding: 15px; border-left: 5px solid #007bff; background-color: #f7faff; }
+        .high-risk { border-left-color: #dc3545; background-color: #fff0f3; }
+        .warning { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>情绪状态评估量表</h1>
+    <p><strong>说明：</strong>请根据过去**七天**的实际感受，在每项描述下选择最符合您的程度。请务必真实填写。</p>
+    <form id="assessment-form">
+        
+        <div class="question-group" data-id="1">
+            <div class="question-text">1. 感到身体某个部位（如头、颈、胃）有**莫名的不适或疼痛**。</div>
+            <div class="options" data-name="q1">
+                <input type="radio" id="q1-0" name="q1" value="0"><label for="q1-0">未曾发生</label>
+                <input type="radio" id="q1-1" name="q1" value="1"><label for="q1-1">很少发生</label>
+                <input type="radio" id="q1-2" name="q1" value="2"><label for="q1-2">有时发生</label>
+                <input type="radio" id="q1-3" name="q1" value="3"><label for="q1-3">经常发生</label>
+                <input type="radio" id="q1-4" name="q1" value="4"><label for="q1-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="2">
+            <div class="question-text">2. 觉得**做什么事情都提不起精神**，即使是过去喜欢的事。</div>
+            <div class="options" data-name="q2">
+                <input type="radio" id="q2-0" name="q2" value="0"><label for="q2-0">未曾发生</label>
+                <input type="radio" id="q2-1" name="q2" value="1"><label for="q2-1">很少发生</label>
+                <input type="radio" id="q2-2" name="q2" value="2"><label for="q2-2">有时发生</label>
+                <input type="radio" id="q2-3" name="q2" value="3"><label for="q2-3">经常发生</label>
+                <input type="radio" id="q2-4" name="q2" value="4"><label for="q2-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="3">
+            <div class="question-text">3. **入睡困难**，或比平时**醒得早**很多。</div>
+            <div class="options" data-name="q3">
+                <input type="radio" id="q3-0" name="q3" value="0"><label for="q3-0">未曾发生</label>
+                <input type="radio" id="q3-1" name="q3" value="1"><label for="q3-1">很少发生</label>
+                <input type="radio" id="q3-2" name="q3" value="2"><label for="q3-2">有时发生</label>
+                <input type="radio" id="q3-3" name="q3" value="3"><label for="q3-3">经常发生</label>
+                <input type="radio" id="q3-4" name="q3" value="4"><label for="q3-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group lie-item" data-id="L1" data-lie-type="L" data-lie-direction="low">
+            <div class="question-text">4. **在我的记忆中，我从未说过一句违背事实的话。**</div>
+            <div class="options" data-name="q4">
+                <input type="radio" id="q4-0" name="q4" value="0"><label for="q4-0">未曾发生</label>
+                <input type="radio" id="q4-1" name="q4" value="1"><label for="q4-1">很少发生</label>
+                <input type="radio" id="q4-2" name="q4" value="2"><label for="q4-2">有时发生</label>
+                <input type="radio" id="q4-3" name="q4" value="3"><label for="q4-3">经常发生</label>
+                <input type="radio" id="q4-4" name="q4" value="4"><label for="q4-4">总是如此</label>
+            </div>
+        </div>
+        
+        <div class="question-group" data-id="5">
+            <div class="question-text">5. **思维或行动速度感觉迟缓**，周围的人似乎更快。</div>
+            <div class="options" data-name="q5">
+                <input type="radio" id="q5-0" name="q5" value="0"><label for="q5-0">未曾发生</label>
+                <input type="radio" id="q5-1" name="q5" value="1"><label for="q5-1">很少发生</label>
+                <input type="radio" id="q5-2" name="q5" value="2"><label for="q5-2">有时发生</label>
+                <input type="radio" id="q5-3" name="q5" value="3"><label for="q5-3">经常发生</label>
+                <input type="radio" id="q5-4" name="q5" value="4"><label for="q5-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="6">
+            <div class="question-text">6. 对**自己的未来感到迷茫或不确定**，很难做长期规划。</div>
+            <div class="options" data-name="q6">
+                <input type="radio" id="q6-0" name="q6" value="0"><label for="q6-0">未曾发生</label>
+                <input type="radio" id="q6-1" name="q6" value="1"><label for="q6-1">很少发生</label>
+                <input type="radio" id="q6-2" name="q6" value="2"><label for="q6-2">有时发生</label>
+                <input type="radio" id="q6-3" name="q6" value="3"><label for="q6-3">经常发生</label>
+                <input type="radio" id="q6-4" name="q6" value="4"><label for="q6-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="7">
+            <div class="question-text">7. 感觉自己**没有价值**，或者总是因为一些事情而**自责**。</div>
+            <div class="options" data-name="q7">
+                <input type="radio" id="q7-0" name="q7" value="0"><label for="q7-0">未曾发生</label>
+                <input type="radio" id="q7-1" name="q7" value="1"><label for="q7-1">很少发生</label>
+                <input type="radio" id="q7-2" name="q7" value="2"><label for="q7-2">有时发生</label>
+                <input type="radio" id="q7-3" name="q7" value="3"><label for="q7-3">经常发生</label>
+                <input type="radio" id="q7-4" name="q7" value="4"><label for="q7-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group lie-item" data-id="K1" data-lie-type="K" data-lie-direction="low">
+            <div class="question-text">8. 在任何情况下，**我都能迅速地做出最佳决定**。</div>
+            <div class="options" data-name="q8">
+                <input type="radio" id="q8-0" name="q8" value="0"><label for="q8-0">未曾发生</label>
+                <input type="radio" id="q8-1" name="q8" value="1"><label for="q8-1">很少发生</label>
+                <input type="radio" id="q8-2" name="q8" value="2"><label for="q8-2">有时发生</label>
+                <input type="radio" id="q8-3" name="q8" value="3"><label for="q8-3">经常发生</label>
+                <input type="radio" id="q8-4" name="q8" value="4"><label for="q8-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="9">
+            <div class="question-text">9. **食欲明显下降或增加**，体重随之波动。</div>
+            <div class="options" data-name="q9">
+                <input type="radio" id="q9-0" name="q9" value="0"><label for="q9-0">未曾发生</label>
+                <input type="radio" id="q9-1" name="q9" value="1"><label for="q9-1">很少发生</label>
+                <input type="radio" id="q9-2" name="q9" value="2"><label for="q9-2">有时发生</label>
+                <input type="radio" id="q9-3" name="q9" value="3"><label for="q9-3">经常发生</label>
+                <input type="radio" id="q9-4" name="q9" value="4"><label for="q9-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="10">
+            <div class="question-text">10. **很难集中注意力**，完成任务或阅读时容易分心。</div>
+            <div class="options" data-name="q10">
+                <input type="radio" id="q10-0" name="q10" value="0"><label for="q10-0">未曾发生</label>
+                <input type="radio" id="q10-1" name="q10" value="1"><label for="q10-1">很少发生</label>
+                <input type="radio" id="q10-2" name="q10" value="2"><label for="q10-2">有时发生</label>
+                <input type="radio" id="q10-3" name="q10" value="3"><label for="q10-3">经常发生</label>
+                <input type="radio" id="q10-4" name="q10" value="4"><label for="q10-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="11">
+            <div class="question-text">11. 感到**烦躁不安或特别容易生气**，对小事也失去耐心。</div>
+            <div class="options" data-name="q11">
+                <input type="radio" id="q11-0" name="q11" value="0"><label for="q11-0">未曾发生</label>
+                <input type="radio" id="q11-1" name="q11" value="1"><label for="q11-1">很少发生</label>
+                <input type="radio" id="q11-2" name="q11" value="2"><label for="q11-2">有时发生</label>
+                <input type="radio" id="q11-3" name="q11" value="3"><label for="q11-3">经常发生</label>
+                <input type="radio" id="q11-4" name="q11" value="4"><label for="q11-4">总是如此</label>
+            </div>
+        </div>
+
+        <div class="question-group" data-id="12">
+            <div class="question-text">12. 持续感到**精疲力尽或身体很沉重**，即使休息后也难以恢复。</div>
+            <div class="options" data-name="q12">
+                <input type="radio" id="q12-0" name="q12" value="0"><label for="q12-0">未曾发生</label>
+                <input type="radio" id="q12-1" name="q12" value="1"><label for="q12-1">很少发生</label>
+                <input type="radio" id="q12-2" name="q12" value="2"><label for="q12-2">有时发生</label>
+                <input type="radio" id="q12-3" name="q12" value="3"><label for="q12-3">经常发生</label>
+                <input type="radio" id="q12-4" name="q12" value="4"><label for="q12-4">总是如此</label>
+            </div>
+        </div>
+        
+        <button type="button" id="submit-btn">计算评估结果</button>
+    </form>
+
+    <div id="result">
+        <h2>评估结果</h2>
+        <p>评估项目总分为 40 分（10个症状项目 × 4分）。</p>
+        <p>您的评估项目得分是：<span class="result-score" id="total-score">0</span> 分</p>
+        <p>您的**测谎量表 (L/K)** 得分是：<span class="result-score" id="lie-score">0</span> 分</p>
+        
+        <div id="total-interpretation" class="interpretation"></div>
+        <div id="lie-interpretation" class="interpretation"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 总共12个问题，其中10个是症状项目 (Q1, Q2, Q3, Q5, Q6, Q7, Q9, Q10, Q11, Q12)，2个是测谎项目 (Q4, Q8)
+        const NUM_SYMPTOM_ITEMS = 10;
+        const MAX_SYMPTOM_SCORE = NUM_SYMPTOM_ITEMS * 4; // 40分
+
+        const form = document.getElementById('assessment-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultDiv = document.getElementById('result');
+        const totalScoreSpan = document.getElementById('total-score');
+        const lieScoreSpan = document.getElementById('lie-score');
+        const totalInterpretationDiv = document.getElementById('total-interpretation');
+        const lieInterpretationDiv = document.getElementById('lie-interpretation');
+
+        // 总分评估函数 (基于 10 个有效题, 总分 0-40)
+        function interpretTotalScore(score) {
+            let interpretation = '';
+            let className = 'interpretation';
+            
+            // 设定新的风险评估阈值 (基于 40 分总分)
+            if (score < 10) {
+                interpretation = '### 情绪困扰程度：低';
+                interpretation += '<p>您的情绪项目总分较低，表明您在过去七天中很少感受到明显的困扰，情绪状态相对平稳。</p>';
+            } else if (score < 20) {
+                interpretation = '### 情绪困扰程度：中等';
+                interpretation += '<p>您的得分处于中等范围，提示您可能正经历一些**轻微到中度**的情绪起伏或压力。建议对得分较高的项目给予更多关注，并进行适当的放松和自我调节。</p>';
+                className += ' high-risk';
+            } else {
+                interpretation = '### 情绪困扰程度：高';
+                interpretation += '<p class="warning">您的得分较高，表明在多个方面存在**明显的**情绪和躯体困扰。<strong>强烈建议您寻求专业的心理咨询或医疗评估，以便获得进一步的帮助。</strong></p>';
+                className += ' high-risk';
+            }
+
+            totalInterpretationDiv.className = className;
+            totalInterpretationDiv.innerHTML = interpretation;
+        }
+
+        // 测谎分评估函数 (基于 2 个测谎题，测谎分 0-8)
+        function interpretLieScore(score) {
+            let interpretation = '';
+            let className = 'interpretation';
+            
+            interpretation += '### 测谎分 L/K 解释';
+            
+            if (score >= 4) { // 3分或4分的回答累积达到4分或更高
+                interpretation += '<p class="warning">您的测谎得分较高（得分 ' + score + '）。这可能提示您在填写量表时**过度美化自己**或**刻意掩饰**负面体验，导致评估结果的真实性存在疑问。请尝试以更开放的态度重新填写。</p>';
+                className += ' high-risk';
+            } else {
+                interpretation += '<p>您的测谎得分较低（得分 ' + score + '）。这表明您在作答时保持了相对**诚实和开放**的态度，量表的有效性较高。</p>';
+            }
+
+            lieInterpretationDiv.className = className;
+            lieInterpretationDiv.innerHTML = interpretation;
+        }
+
+
+        submitBtn.addEventListener('click', () => {
+            let totalScore = 0;
+            let lieScore = 0;
+            const requiredQuestions = document.querySelectorAll('.question-group');
+            let allAnswered = true;
+
+            requiredQuestions.forEach(qGroup => {
+                const qName = qGroup.querySelector('.options').getAttribute('data-name');
+                const selected = form.querySelector(`input[name="${qName}"]:checked`);
+                
+                qGroup.style.border = '1px solid #e9ecef'; 
+                if (!selected) {
+                    allAnswered = false;
+                    qGroup.style.border = '2px solid #dc3545'; // 标记未回答的题目
+                    return; 
+                } 
+
+                const score = parseInt(selected.value, 10);
+                
+                if (qGroup.classList.contains('lie-item')) {
+                    const qId = qGroup.getAttribute('data-id');
+                    // 测谎逻辑：高分 (3或4) 计入测谎分。
+                    if (qId === 'L1' || qId === 'K1') {
+                        if (score >= 3) { 
+                            lieScore += score;
+                        }
+                    }
+                } else {
+                    totalScore += score;
+                }
+            });
+
+            if (!allAnswered) {
+                alert('请完成所有题目后再提交。未完成的题目已被标记。');
+                resultDiv.style.display = 'none';
+                return;
+            }
+
+            // 显示得分
+            totalScoreSpan.textContent = totalScore;
+            lieScoreSpan.textContent = lieScore;
+
+            // 赋予含义
+            interpretTotalScore(totalScore);
+            interpretLieScore(lieScore);
+
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+</script>
+
+</body>
+</html>
